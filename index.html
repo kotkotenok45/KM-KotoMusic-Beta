@@ -3,565 +3,227 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KotoMusic - Современный музыкальный плеер</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <title>Web Music Player</title>
     <style>
         :root {
-            --primary: #ff6b6b;
-            --secondary: #4ecdc4;
-            --dark: #1a1a2e;
-            --darker: #0d0d1a;
-            --light: #f8f9fa;
-            --gray: #6c757d;
-            --card-bg: rgba(30, 30, 46, 0.8);
-            --card-border: rgba(255, 255, 255, 0.1);
+            --spotify-green: #1db954;
+            --bg-black: #121212;
+            --card-grey: #181818;
+            --text-grey: #b3b3b3;
         }
-        
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        
+
         body {
-            background: linear-gradient(135deg, var(--darker), var(--dark));
-            color: var(--light);
-            min-height: 100vh;
+            background-color: var(--bg-black);
+            color: white;
+            font-family: 'Segoe UI', sans-serif;
+            margin: 0;
             display: flex;
             flex-direction: column;
+            height: 100vh;
         }
-        
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
+
+        /* Список треков */
+        .playlist {
             padding: 20px;
             flex: 1;
-        }
-        
-        header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 20px 0;
-            margin-bottom: 30px;
-            border-bottom: 1px solid var(--card-border);
-        }
-        
-        .logo {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-        
-        .logo-icon {
-            width: 60px;
-            height: 60px;
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-        }
-        
-        .logo-text {
-            font-size: 28px;
-            font-weight: 700;
-            background: linear-gradient(90deg, var(--primary), var(--secondary));
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
-        }
-        
-        .main-content {
-            display: grid;
-            grid-template-columns: 300px 1fr;
-            gap: 30px;
-            margin-bottom: 100px;
-        }
-        
-        .sidebar {
-            background: var(--card-bg);
-            border-radius: 15px;
-            padding: 25px;
-            border: 1px solid var(--card-border);
-        }
-        
-        .section-title {
-            font-size: 18px;
-            margin-bottom: 20px;
-            color: var(--secondary);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .playlist {
-            max-height: 500px;
             overflow-y: auto;
         }
-        
+
         .track-item {
-            padding: 15px;
-            border-radius: 10px;
-            margin-bottom: 10px;
-            background: rgba(255, 255, 255, 0.05);
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            border-radius: 5px;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: background 0.3s;
+        }
+
+        .track-item:hover { background: #282828; }
+        .track-item.active { color: var(--spotify-green); }
+
+        .track-img { width: 40px; height: 40px; border-radius: 4px; margin-right: 15px; }
+
+        /* Панель управления (Player Bar) */
+        .player-bar {
+            background: #181818;
+            border-top: 1px solid #282828;
+            padding: 15px 30px;
             display: flex;
             align-items: center;
-            gap: 15px;
-        }
-        
-        .track-item:hover {
-            background: rgba(255, 255, 255, 0.1);
-            transform: translateX(5px);
-        }
-        
-        .track-item.active {
-            background: rgba(78, 205, 196, 0.2);
-            border-left: 4px solid var(--secondary);
-        }
-        
-        .track-icon {
-            width: 40px;
-            height: 40px;
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .track-info {
-            flex: 1;
-        }
-        
-        .track-name {
-            font-weight: 600;
-            margin-bottom: 5px;
-        }
-        
-        .track-artist {
-            font-size: 14px;
-            color: var(--gray);
-        }
-        
-        .player-container {
-            background: var(--card-bg);
-            border-radius: 15px;
-            padding: 30px;
-            border: 1px solid var(--card-border);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        
-        .album-cover {
-            width: 250px;
-            height: 250px;
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            border-radius: 15px;
-            margin-bottom: 25px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 60px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-        }
-        
-        .track-details {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-        
-        .track-title {
-            font-size: 28px;
-            font-weight: 700;
-            margin-bottom: 10px;
-        }
-        
-        .track-artist {
-            font-size: 18px;
-            color: var(--secondary);
-        }
-        
-        .progress-container {
-            width: 100%;
-            margin: 20px 0;
-        }
-        
-        .progress-bar {
-            width: 100%;
-            height: 6px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 3px;
-            cursor: pointer;
-            position: relative;
-            margin-bottom: 10px;
-        }
-        
-        .progress {
-            height: 100%;
-            width: 0%;
-            background: linear-gradient(90deg, var(--primary), var(--secondary));
-            border-radius: 3px;
-            transition: width 0.1s linear;
-        }
-        
-        .time-info {
-            display: flex;
             justify-content: space-between;
-            font-size: 14px;
-            color: var(--gray);
+        }
+
+        .current-info { display: flex; align-items: center; width: 30%; }
+        .current-info img { width: 56px; height: 56px; border-radius: 4px; margin-right: 15px; }
+
+        .controls { width: 40%; display: flex; flex-direction: column; align-items: center; }
+        .buttons { margin-bottom: 10px; display: flex; gap: 20px; align-items: center; }
+
+        button {
+            background: none; border: none; color: white; cursor: pointer; font-size: 18px;
+            transition: transform 0.1s;
+        }
+
+        button:hover { transform: scale(1.1); }
+        #play-btn { 
+            background: white; color: black; width: 35px; height: 35px; 
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+        }
+
+        .progress-container { width: 100%; display: flex; align-items: center; gap: 10px; }
+        input[type="range"] { 
+            flex: 1; accent-color: var(--spotify-green); cursor: pointer; height: 4px;
         }
         
-        .controls {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 20px;
-            margin: 20px 0;
-        }
-        
-        .control-btn {
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.1);
-            border: none;
-            color: var(--light);
-            font-size: 18px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.3s ease;
-        }
-        
-        .control-btn:hover {
-            background: rgba(255, 255, 255, 0.2);
-            transform: scale(1.1);
-        }
-        
-        .play-btn {
-            width: 70px;
-            height: 70px;
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            font-size: 24px;
-        }
-        
-        .play-btn:hover {
-            transform: scale(1.1);
-        }
-        
-        .volume-control {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-top: 20px;
-            width: 100%;
-            max-width: 300px;
-        }
-        
-        .volume-slider {
-            flex: 1;
-            height: 6px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 3px;
-            cursor: pointer;
-            position: relative;
-        }
-        
-        .volume-level {
-            height: 100%;
-            width: 70%;
-            background: linear-gradient(90deg, var(--primary), var(--secondary));
-            border-radius: 3px;
-        }
-        
-        footer {
-            text-align: center;
-            padding: 20px;
-            color: var(--gray);
-            font-size: 14px;
-            border-top: 1px solid var(--card-border);
-            margin-top: auto;
-        }
-        
-        @media (max-width: 768px) {
-            .main-content {
-                grid-template-columns: 1fr;
-            }
-            
-            .logo-text {
-                font-size: 24px;
-            }
-            
-            .album-cover {
-                width: 200px;
-                height: 200px;
-            }
-            
-            .track-title {
-                font-size: 24px;
-            }
-        }
+        .time { font-size: 12px; color: var(--text-grey); min-width: 35px; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <div class="logo">
-                <div class="logo-icon">
-                    <i class="fas fa-cat"></i>
-                </div>
-                <div class="logo-text">KotoMusic</div>
+
+    <div class="playlist" id="playlist">
+        <h2>Моя медиатека</h2>
+        <!-- Треки вставятся через JS -->
+    </div>
+
+    <div class="player-bar">
+        <div class="current-info">
+            <img src="https://via.placeholder.com" id="curr-cover">
+            <div>
+                <div id="curr-title">Выберите трек</div>
+                <div id="curr-artist" style="font-size: 12px; color: var(--text-grey);">---</div>
             </div>
-            <div class="user-actions">
-                <button class="control-btn">
-                    <i class="fas fa-user"></i>
-                </button>
+        </div>
+
+        <div class="controls">
+            <div class="buttons">
+                <button onclick="player.prev()">⏮</button>
+                <button id="play-btn" onclick="player.toggle()">▶</button>
+                <button onclick="player.next()">⏭</button>
             </div>
-        </header>
-        
-        <div class="main-content">
-            <aside class="sidebar">
-                <h3 class="section-title">
-                    <i class="fas fa-music"></i> Плейлист
-                </h3>
-                <div class="playlist" id="playlist">
-                    <div class="track-item active">
-                        <div class="track-icon">
-                            <i class="fas fa-music"></i>
-                        </div>
-                        <div class="track-info">
-                            <div class="track-name">Замкнутый Круг</div>
-                            <div class="track-artist">FUZZ-2.0</div>
-                        </div>
-                        <div class="track-duration">3:45</div>
-                    </div>
-                    <div class="track-item">
-                        <div class="track-icon">
-                            <i class="fas fa-music"></i>
-                        </div>
-                        <div class="track-info">
-                            <div class="track-name">Кот учёный (хип-хоп)</div>
-                            <div class="track-artist">FUZZ-2.0</div>
-                        </div>
-                        <div class="track-duration">3:20</div>
-                    </div>
-                    <div class="track-item">
-                        <div class="track-icon">
-                            <i class="fas fa-music"></i>
-                        </div>
-                        <div class="track-info">
-                            <div class="track-name">Мурр-мурр интернет</div>
-                            <div class="track-artist">FUZZ-1.1 Pro</div>
-                        </div>
-                        <div class="track-duration">4:12</div>
-                    </div>
-                    <div class="track-item">
-                        <div class="track-icon">
-                            <i class="fas fa-music"></i>
-                        </div>
-                        <div class="track-info">
-                            <div class="track-name">Кот в мешке</div>
-                            <div class="track-artist">Коллектив</div>
-                        </div>
-                        <div class="track-duration">2:58</div>
-                    </div>
-                </div>
-            </aside>
-            
-            <main class="player-container">
-                <div class="album-cover">
-                    <i class="fas fa-music"></i>
-                </div>
-                
-                <div class="track-details">
-                    <h2 class="track-title">Замкнутый Круг</h2>
-                    <p class="track-artist">FUZZ-2.0</p>
-                </div>
-                
-                <div class="progress-container">
-                    <div class="progress-bar" id="progress-bar">
-                        <div class="progress" id="progress"></div>
-                    </div>
-                    <div class="time-info">
-                        <span id="current-time">0:00</span>
-                        <span id="duration">3:45</span>
-                    </div>
-                </div>
-                
-                <div class="controls">
-                    <button class="control-btn" id="shuffle-btn">
-                        <i class="fas fa-random"></i>
-                    </button>
-                    <button class="control-btn" id="prev-btn">
-                        <i class="fas fa-step-backward"></i>
-                    </button>
-                    <button class="control-btn play-btn" id="play-btn">
-                        <i class="fas fa-play"></i>
-                    </button>
-                    <button class="control-btn" id="next-btn">
-                        <i class="fas fa-step-forward"></i>
-                    </button>
-                    <button class="control-btn" id="repeat-btn">
-                        <i class="fas fa-redo"></i>
-                    </button>
-                </div>
-                
-                <div class="volume-control">
-                    <i class="fas fa-volume-up"></i>
-                    <div class="volume-slider" id="volume-slider">
-                        <div class="volume-level" id="volume-level"></div>
-                    </div>
-                </div>
-            </main>
+            <div class="progress-container">
+                <span class="time" id="time-current">0:00</span>
+                <input type="range" id="progress" value="0">
+                <span class="time" id="time-total">0:00</span>
+            </div>
+        </div>
+
+        <div style="width: 30%; text-align: right;">
+            <span style="font-size: 14px;">🔊</span>
+            <input type="range" id="volume" value="100" style="width: 80px;">
         </div>
     </div>
-    
-    <footer>
-        <p>KotoMusic Beta - Современный музыкальный плеер</p>
-    </footer>
-    
-    <audio id="audio-player"></audio>
-    
+
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const audioPlayer = document.getElementById('audio-player');
-            const playBtn = document.getElementById('play-btn');
-            const prevBtn = document.getElementById('prev-btn');
-            const nextBtn = document.getElementById('next-btn');
-            const progressBar = document.getElementById('progress-bar');
-            const progress = document.getElementById('progress');
-            const currentTimeEl = document.getElementById('current-time');
-            const durationEl = document.getElementById('duration');
-            const volumeSlider = document.getElementById('volume-slider');
-            const volumeLevel = document.getElementById('volume-level');
-            const playlistItems = document.querySelectorAll('.track-item');
-            
-            // Пример треков
-            const tracks = [
-                { title: "Замкнутый Круг", artist: "FUZZ-2.0", duration: "3:45", src: "" },
-                { title: "Кот учёный (хип-хоп)", artist: "FUZZ-2.0", duration: "3:20", src: "" },
-                { title: "Мурр-мурр интернет", artist: "FUZZ-1.1 Pro", duration: "4:12", src: "" },
-                { title: "Кот в мешке", artist: "Коллектив", duration: "2:58", src: "" }
-            ];
-            
-            let currentTrackIndex = 0;
-            let isPlaying = false;
-            
-            // Функция для загрузки трека
-            function loadTrack(index) {
-                const track = tracks[index];
-                document.querySelector('.track-title').textContent = track.title;
-                document.querySelector('.track-artist').textContent = track.artist;
-                durationEl.textContent = track.duration;
+        // Данные (имитация базы данных)
+        const songs = [
+            { title: "Lost in City", artist: "Night Owl", cover: "https://picsum.photos", url: "https://www.soundhelix.com" },
+            { title: "Desert Wind", artist: "Sandstorm", cover: "https://picsum.photos", url: "https://www.soundhelix.com" },
+            { title: "Ocean Waves", artist: "Aqua", cover: "https://picsum.photos", url: "https://www.soundhelix.com" }
+        ];
+
+        const player = {
+            audio: new Audio(),
+            currentIndex: 0,
+            isPlaying: false,
+
+            init() {
+                this.renderPlaylist();
+                this.loadTrack(0);
+
+                // События аудио
+                this.audio.ontimeupdate = () => this.updateProgress();
+                this.audio.onended = () => this.next();
                 
-                // Обновляем активный трек в плейлисте
-                playlistItems.forEach((item, i) => {
-                    if (i === index) {
-                        item.classList.add('active');
-                    } else {
-                        item.classList.remove('active');
-                    }
-                });
+                // Громкость
+                document.getElementById('volume').oninput = (e) => this.audio.volume = e.target.value / 100;
                 
-                // Для демонстрации используем фиктивный источник
-                // В реальном приложении здесь будет URL трека
-            }
-            
-            // Функция воспроизведения
-            function playTrack() {
-                isPlaying = true;
-                playBtn.innerHTML = '<i class="fas fa-pause"></i>';
-                // В реальном приложении: audioPlayer.play();
-            }
-            
-            // Функция паузы
-            function pauseTrack() {
-                isPlaying = false;
-                playBtn.innerHTML = '<i class="fas fa-play"></i>';
-                // В реальном приложении: audioPlayer.pause();
-            }
-            
-            // Переключение воспроизведения
-            playBtn.addEventListener('click', () => {
-                if (isPlaying) {
-                    pauseTrack();
-                } else {
-                    playTrack();
-                }
-            });
-            
-            // Следующий трек
-            nextBtn.addEventListener('click', () => {
-                currentTrackIndex++;
-                if (currentTrackIndex >= tracks.length) {
-                    currentTrackIndex = 0;
-                }
-                loadTrack(currentTrackIndex);
-                if (isPlaying) {
-                    playTrack();
-                }
-            });
-            
-            // Предыдущий трек
-            prevBtn.addEventListener('click', () => {
-                currentTrackIndex--;
-                if (currentTrackIndex < 0) {
-                    currentTrackIndex = tracks.length - 1;
-                }
-                loadTrack(currentTrackIndex);
-                if (isPlaying) {
-                    playTrack();
-                }
-            });
-            
-            // Нажатие на трек в плейлисте
-            playlistItems.forEach((item, index) => {
-                item.addEventListener('click', () => {
-                    currentTrackIndex = index;
-                    loadTrack(currentTrackIndex);
-                    playTrack();
+                // Перемотка
+                document.getElementById('progress').oninput = (e) => {
+                    const time = (e.target.value / 100) * this.audio.duration;
+                    this.audio.currentTime = time;
+                };
+            },
+
+            renderPlaylist() {
+                const container = document.getElementById('playlist');
+                songs.forEach((song, index) => {
+                    const div = document.createElement('div');
+                    div.className = 'track-item';
+                    div.innerHTML = `
+                        <img src="${song.cover}" class="track-img">
+                        <div>
+                            <div>${song.title}</div>
+                            <div style="font-size:12px; color:var(--text-grey)">${song.artist}</div>
+                        </div>
+                    `;
+                    div.onclick = () => this.loadTrack(index, true);
+                    container.appendChild(div);
                 });
-            });
-            
-            // Обновление прогресса (демонстрация)
-            setInterval(() => {
-                if (isPlaying) {
-                    // В реальном приложении это будет основываться на audioPlayer.currentTime
-                    const fakeProgress = (Math.random() * 100).toFixed(2);
-                    progress.style.width = fakeProgress + '%';
-                    
-                    // Обновляем текущее время (демонстрация)
-                    const currentTime = Math.floor(Math.random() * 200);
-                    const minutes = Math.floor(currentTime / 60);
-                    const seconds = Math.floor(currentTime % 60);
-                    currentTimeEl.textContent = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+            },
+
+            loadTrack(index, autoPlay = false) {
+                this.currentIndex = index;
+                const song = songs[index];
+                this.audio.src = song.url;
+                
+                document.getElementById('curr-title').innerText = song.title;
+                document.getElementById('curr-artist').innerText = song.artist;
+                document.getElementById('curr-cover').src = song.cover;
+                
+                // Подсветка активного трека
+                document.querySelectorAll('.track-item').forEach((el, i) => {
+                    el.classList.toggle('active', i === index);
+                });
+
+                if (autoPlay) this.play();
+            },
+
+            toggle() {
+                this.isPlaying ? this.pause() : this.play();
+            },
+
+            play() {
+                this.audio.play();
+                this.isPlaying = true;
+                document.getElementById('play-btn').innerText = '⏸';
+            },
+
+            pause() {
+                this.audio.pause();
+                this.isPlaying = false;
+                document.getElementById('play-btn').innerText = '▶';
+            },
+
+            next() {
+                let nextIndex = (this.currentIndex + 1) % songs.length;
+                this.loadTrack(nextIndex, true);
+            },
+
+            prev() {
+                let prevIndex = (this.currentIndex - 1 + songs.length) % songs.length;
+                this.loadTrack(prevIndex, true);
+            },
+
+            updateProgress() {
+                const prog = document.getElementById('progress');
+                const currTime = document.getElementById('time-current');
+                const totalTime = document.getElementById('time-total');
+
+                if (this.audio.duration) {
+                    prog.value = (this.audio.currentTime / this.audio.duration) * 100;
+                    currTime.innerText = this.formatTime(this.audio.currentTime);
+                    totalTime.innerText = this.formatTime(this.audio.duration);
                 }
-            }, 1000);
-            
-            // Клик по прогресс-бару
-            progressBar.addEventListener('click', (e) => {
-                const rect = progressBar.getBoundingClientRect();
-                const pos = (e.clientX - rect.left) / rect.width;
-                progress.style.width = pos * 100 + '%';
-            });
-            
-            // Регулировка громкости
-            volumeSlider.addEventListener('click', (e) => {
-                const rect = volumeSlider.getBoundingClientRect();
-                const pos = (e.clientX - rect.left) / rect.width;
-                volumeLevel.style.width = pos * 100 + '%';
-            });
-            
-            // Инициализация
-            loadTrack(currentTrackIndex);
-        });
+            },
+
+            formatTime(seconds) {
+                const min = Math.floor(seconds / 60);
+                const sec = Math.floor(seconds % 60);
+                return `${min}:${sec < 10 ? '0' + sec : sec}`;
+            }
+        };
+
+        player.init();
     </script>
 </body>
 </html>
