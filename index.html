@@ -2,27 +2,25 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>KotoMusic Beta</title>
     <script src="https://cdnjs.cloudflare.com"></script>
     <style>
-        :root { --green: #1db954; --bg: #121212; --text: #b3b3b3; --panel: #181818; }
+        :root { --green: #1db954; --bg: #121212; --text: #b3b3b3; }
         body { background: var(--bg); color: white; font-family: sans-serif; margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
         .main { display: flex; flex: 1; overflow: hidden; }
-        .playlist { width: 300px; background: #000; border-right: 1px solid #282828; padding: 20px; overflow-y: auto; }
-        .track-item { padding: 12px; cursor: pointer; border-radius: 8px; margin-bottom: 8px; border: 1px solid transparent; }
+        .playlist { width: 300px; background: #000; border-right: 1px solid #333; padding: 20px; overflow-y: auto; }
+        .track-item { padding: 12px; cursor: pointer; border-radius: 6px; margin-bottom: 8px; background: #181818; border: 1px solid transparent; }
         .track-item:hover { background: #282828; }
-        .track-item.active { border-color: var(--green); background: #181818; }
+        .track-item.active { border-color: var(--green); }
         .lyrics-view { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 40px; background: linear-gradient(180deg, #222 0%, #121212 100%); overflow-y: auto; scroll-behavior: smooth; }
         .lyric-line { font-size: 24px; font-weight: bold; margin: 15px 0; color: #444; transition: 0.3s; text-align: center; }
         .lyric-line.active { color: white; transform: scale(1.05); }
-        .player-bar { background: var(--panel); padding: 15px 20px; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid #282828; }
+        .player-bar { background: #181818; padding: 15px 20px; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid #333; }
         #cover { width: 50px; height: 50px; border-radius: 4px; object-fit: cover; background: #333; }
         .controls { width: 40%; display: flex; flex-direction: column; align-items: center; }
         #play-btn { background: white; border: none; border-radius: 50%; width: 40px; height: 40px; cursor: pointer; font-size: 18px; }
         .prog-box { width: 100%; display: flex; align-items: center; gap: 10px; margin-top: 8px; }
         input[type="range"] { flex: 1; accent-color: var(--green); cursor: pointer; }
-        .err { color: #ff4444; font-weight: bold; text-align: center; padding: 20px; }
     </style>
 </head>
 <body>
@@ -30,10 +28,10 @@
 <div class="main">
     <div class="playlist" id="playlist">
         <h3 style="margin-top:0">Медиатека</h3>
-        <div id="list-content"></div>
+        <div id="list-content">Загрузка...</div>
     </div>
     <div class="lyrics-view" id="lyrics-win">
-        <div id="lyrics-content">Сканирование Music...</div>
+        <div id="lyrics-content">Ожидание трека...</div>
     </div>
 </div>
 
@@ -41,12 +39,12 @@
     <div style="display:flex; align-items:center; gap:12px; width:30%;">
         <img id="cover" src="">
         <div style="overflow:hidden">
-            <div id="title" style="font-weight:bold; font-size:14px; white-space:nowrap;">---</div>
+            <div id="title" style="font-weight:bold; font-size:14px;">---</div>
             <div id="artist" style="font-size:12px; color:var(--text)">---</div>
         </div>
     </div>
     <div class="controls">
-        <button onclick="player.toggle()" id="play-btn">▶</button>
+        <button onclick="p.toggle()" id="play-btn">▶</button>
         <div class="prog-box">
             <span id="cur" style="font-size:10px">0:00</span>
             <input type="range" id="prog" value="0" step="0.1">
@@ -59,44 +57,45 @@
 </div>
 
 <script>
-// ТОЧНЫЕ ДАННЫЕ ТВОЕГО РЕПО
+// --- НАСТРОЙКИ ---
 const USER = "kotkotenok45";
-const REPO = "KM-KotoMusic-Beta"; // Проверь, нет ли тут лишних символов
-const FOLDER = "Music"; 
+const REPO = "KM-KotoMusic-Beta";
+const FOLDER = "Music";
 
-const jsmediatags = window.jsmediatags;
+// ЕСЛИ АВТОМАТИКА НЕ СРАБОТАЕТ, ПРОСТО ДОБАВЬ НАЗВАНИЯ ФАЙЛОВ СЮДА:
+const MANUAL_FILES = []; // например ["track1.mp3", "track2.mp3"]
+// -----------------
 
-const player = {
+const p = {
     audio: new Audio(),
     tracks: [],
     lyricsData: [],
 
     async init() {
-        const lyrCont = document.getElementById('lyrics-content');
         try {
-            // Запрос к API GitHub
-            const api = `https://api.github.com{USER}/${REPO}/contents/${FOLDER}?ref=main`;
+            let files;
+            const api = `https://api.github.com{USER}/${REPO}/contents/${FOLDER}`;
             const res = await fetch(api);
             
-            if (!res.ok) throw new Error(`Ошибка ${res.status}: Папка не найдена или лимит запросов.`);
+            if (res.ok) {
+                const data = await res.json();
+                files = data.filter(f => f.name.toLowerCase().endsWith('.mp3')).map(f => f.download_url);
+            } else {
+                console.warn("API лимит или ошибка. Переключаюсь на ручной список.");
+                files = MANUAL_FILES.map(name => `https://raw.githubusercontent.com{USER}/${REPO}/main/${FOLDER}/${encodeURIComponent(name)}`);
+            }
 
-            const files = await res.json();
-            const mp3s = files.filter(f => f.name.toLowerCase().endsWith('.mp3'));
+            if (!files.length) throw new Error("Музыка не найдена. Проверь папку Music.");
 
-            if (mp3s.length === 0) throw new Error("В папке 'Music' нет mp3 файлов.");
-
-            lyrCont.innerText = `Найдено ${mp3s.length} треков. Читаю теги...`;
-
-            for (let file of mp3s) {
-                const data = await this.read(file.download_url);
-                this.tracks.push(data);
+            for (let url of files) {
+                const tagData = await this.read(url);
+                this.tracks.push(tagData);
             }
 
             this.render();
             if (this.tracks.length > 0) this.load(0);
-
         } catch (e) {
-            lyrCont.innerHTML = `<div class="err">${e.message}<br><br>Проверь, что репозиторий PUBLIC.</div>`;
+            document.getElementById('lyrics-content').innerHTML = `<div style="color:red">${e.message}</div>`;
         }
 
         this.audio.ontimeupdate = () => this.update();
@@ -106,7 +105,7 @@ const player = {
 
     read(url) {
         return new Promise(res => {
-            jsmediatags.read(url, {
+            window.jsmediatags.read(url, {
                 onSuccess: (t) => {
                     const { title, artist, lyrics, picture } = t.tags;
                     let img = "";
@@ -116,16 +115,16 @@ const player = {
                         for (let i = 0; i < data.length; i++) b64 += String.fromCharCode(data[i]);
                         img = `data:${format};base64,${window.btoa(base64)}`;
                     }
-                    res({ url, title: title || url.split('/').pop(), artist: artist || "Unknown", img, lyr: lyrics?.lyrics || lyrics || "" });
+                    res({ url, title: title || decodeURIComponent(url.split('/').pop()), artist: artist || "Unknown", img, lyr: lyrics?.lyrics || lyrics || "" });
                 },
-                onError: () => res({ url, title: url.split('/').pop(), artist: "Unknown", img: "", lyr: "" })
+                onError: () => res({ url, title: decodeURIComponent(url.split('/').pop()), artist: "Unknown", img: "", lyr: "" })
             });
         });
     },
 
     render() {
         document.getElementById('list-content').innerHTML = this.tracks.map((t, i) => 
-            `<div class="track-item" id="t-${i}" onclick="player.load(${i}, true)"><b>${t.title}</b><br><small>${t.artist}</small></div>`
+            `<div class="track-item" id="t-${i}" onclick="p.load(${i}, true)"><b>${t.title}</b><br><small>${t.artist}</small></div>`
         ).join('');
     },
 
@@ -137,7 +136,8 @@ const player = {
         document.getElementById('cover').src = t.img || "https://via.placeholder.com";
         this.parse(t.lyr);
         document.querySelectorAll('.track-item').forEach((el, i) => el.classList.toggle('active', i === idx));
-        if (play) this.play();
+        if (play) this.audio.play();
+        document.getElementById('play-btn').innerText = '⏸';
     },
 
     parse(txt) {
@@ -150,14 +150,14 @@ const player = {
             });
             cont.innerHTML = this.lyricsData.map((l, i) => `<div class="lyric-line" id="l-${i}">${l.text}</div>`).join('');
         } else {
-            cont.innerHTML = `<pre style="color:white; font-size:16px;">${txt || "Нет текста в тегах"}</pre>`;
+            cont.innerHTML = `<pre style="color:white; font-size:16px; text-align:center;">${txt || "Нет текста"}</pre>`;
         }
-        document.getElementById('lyrics-win').scrollTop = 0;
     },
 
-    toggle() { this.audio.paused ? this.play() : this.pause(); },
-    play() { this.audio.play(); document.getElementById('play-btn').innerText = '⏸'; },
-    pause() { this.audio.pause(); document.getElementById('play-btn').innerText = '▶'; },
+    toggle() { 
+        if (this.audio.paused) { this.audio.play(); document.getElementById('play-btn').innerText = '⏸'; }
+        else { this.audio.pause(); document.getElementById('play-btn').innerText = '▶'; }
+    },
 
     update() {
         if (this.audio.duration) {
@@ -175,7 +175,7 @@ const player = {
     },
     fmt: s => `${Math.floor(s/60)}:${Math.floor(s%60).toString().padStart(2, '0')}`
 };
-player.init();
+p.init();
 </script>
 </body>
 </html>
