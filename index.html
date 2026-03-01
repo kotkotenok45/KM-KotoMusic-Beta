@@ -4,36 +4,35 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>KotoMusic Beta</title>
+    <!-- Библиотека для чтения тегов из MP3 -->
     <script src="https://cdnjs.cloudflare.com"></script>
     <style>
         :root { --green: #1db954; --bg: #121212; --text: #b3b3b3; --panel: #181818; }
         body { background: var(--bg); color: white; font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
         .main { display: flex; flex: 1; overflow: hidden; }
         .playlist { width: 320px; background: #000; border-right: 1px solid #282828; padding: 20px; overflow-y: auto; }
-        .track-item { padding: 12px; cursor: pointer; border-radius: 8px; margin-bottom: 8px; transition: 0.2s; border: 1px solid transparent; display: flex; flex-direction: column; }
+        .track-item { padding: 12px; cursor: pointer; border-radius: 8px; margin-bottom: 8px; transition: 0.2s; border: 1px solid transparent; }
         .track-item:hover { background: #282828; }
         .track-item.active { border-color: var(--green); background: #181818; }
-        .track-item b { font-size: 14px; color: white; }
-        .track-item span { font-size: 12px; color: var(--text); margin-top: 4px; }
+        .track-item b { font-size: 14px; color: white; display: block; }
+        .track-item span { font-size: 12px; color: var(--text); }
         .lyrics-view { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 40px; background: linear-gradient(180deg, #222 0%, #121212 100%); overflow-y: auto; scroll-behavior: smooth; }
-        .lyric-line { font-size: 28px; font-weight: bold; margin: 20px 0; color: #444; transition: 0.4s; text-align: center; max-width: 90%; }
-        .lyric-line.active { color: white; transform: scale(1.1); text-shadow: 0 0 15px rgba(255,255,255,0.3); }
+        .lyric-line { font-size: 28px; font-weight: bold; margin: 20px 0; color: #444; transition: 0.4s; text-align: center; }
+        .lyric-line.active { color: white; transform: scale(1.1); }
         .player-bar { background: var(--panel); padding: 15px 30px; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid #282828; }
         .info { width: 30%; display: flex; align-items: center; gap: 15px; }
         #cover { width: 60px; height: 60px; border-radius: 6px; object-fit: cover; background: #282828; }
         .controls { width: 40%; display: flex; flex-direction: column; align-items: center; }
-        .btns { display: flex; gap: 25px; align-items: center; margin-bottom: 10px; }
         #play-btn { background: white; border: none; border-radius: 50%; width: 45px; height: 45px; cursor: pointer; font-size: 20px; display: flex; align-items: center; justify-content: center; }
-        .prog-container { width: 100%; display: flex; align-items: center; gap: 12px; }
+        .prog-container { width: 100%; display: flex; align-items: center; gap: 12px; margin-top: 10px; }
         input[type="range"] { flex: 1; accent-color: var(--green); cursor: pointer; }
         .time { font-size: 11px; color: var(--text); min-width: 35px; }
         #status { position: fixed; top: 20px; right: 20px; background: var(--green); color: black; padding: 6px 16px; border-radius: 20px; font-size: 12px; font-weight: bold; display: none; z-index: 100; }
-        pre { font-family: inherit; font-size: 18px; line-height: 1.8; color: white; white-space: pre-wrap; text-align: center; }
     </style>
 </head>
 <body>
 
-<div id="status">Поиск музыки...</div>
+<div id="status">Загрузка...</div>
 
 <div class="main">
     <div class="playlist">
@@ -41,7 +40,7 @@
         <div id="list-content"></div>
     </div>
     <div class="lyrics-view" id="lyrics-win">
-        <div id="lyrics-content">Загрузка музыкальной библиотеки из папки Music...</div>
+        <div id="lyrics-content" style="text-align:center;">Сканирование папки Music...</div>
     </div>
 </div>
 
@@ -49,12 +48,12 @@
     <div class="info">
         <img id="cover" src="https://via.placeholder.com">
         <div>
-            <div id="title" style="font-weight:bold; font-size: 14px;">Ожидание...</div>
+            <div id="title" style="font-weight:bold; font-size: 14px;">---</div>
             <div id="artist" style="font-size:12px; color:var(--text)">---</div>
         </div>
     </div>
     <div class="controls">
-        <div class="btns">
+        <div style="display:flex; gap:25px; align-items:center;">
             <button onclick="player.prev()" style="background:none; border:none; color:white; cursor:pointer; font-size:24px;">⏮</button>
             <button onclick="player.toggle()" id="play-btn">▶</button>
             <button onclick="player.next()" style="background:none; border:none; color:white; cursor:pointer; font-size:24px;">⏭</button>
@@ -73,7 +72,7 @@
 <script>
 const GITHUB_USER = "kotkotenok45";
 const GITHUB_REPO = "KM-KotoMusic-Beta";
-const MUSIC_FOLDER = "Music"; // Папка с большой буквы
+const FOLDER = "Music"; // Название папки с большой буквы
 
 const jsmediatags = window.jsmediatags;
 
@@ -88,27 +87,19 @@ const player = {
         st.style.display = 'block';
 
         try {
-            // Запрос к API GitHub для получения содержимого папки Music
-            const apiUrl = `https://api.github.com{GITHUB_USER}/${GITHUB_REPO}/contents/${MUSIC_FOLDER}`;
-            const resp = await fetch(apiUrl);
+            // Запрос списка файлов из GitHub API
+            const url = `https://api.github.com{GITHUB_USER}/${GITHUB_REPO}/contents/${FOLDER}`;
+            const resp = await fetch(url);
             
-            if (!resp.ok) {
-                if (resp.status === 404) throw new Error(`Папка "${MUSIC_FOLDER}" не найдена. Проверь название в репозитории.`);
-                if (resp.status === 403) throw new Error("Лимит запросов GitHub превышен. Подожди 15-60 минут.");
-                throw new Error(`Ошибка API: ${resp.status}`);
-            }
+            if (!resp.ok) throw new Error(`Не удалось найти папку "${FOLDER}" или превышен лимит запросов.`);
 
             const files = await resp.json();
             const mp3s = files.filter(f => f.name.toLowerCase().endsWith('.mp3'));
 
-            if (mp3s.length === 0) {
-                document.getElementById('lyrics-content').innerText = `В папке "${MUSIC_FOLDER}" не найдено .mp3 файлов.`;
-                st.style.display = 'none';
-                return;
-            }
+            if (mp3s.length === 0) throw new Error("В папке нет MP3 файлов.");
 
             for (let file of mp3s) {
-                st.innerText = `Обработка: ${file.name}`;
+                st.innerText = `Читаю: ${file.name}`;
                 const data = await this.readTags(file.download_url);
                 this.tracks.push(data);
             }
@@ -118,8 +109,7 @@ const player = {
             if (this.tracks.length > 0) this.load(0);
 
         } catch (e) {
-            console.error("Критическая ошибка:", e);
-            document.getElementById('lyrics-content').innerHTML = `<span style="color:#ff4444">Ошибка: ${e.message}</span><br><br>Убедитесь, что репозиторий PUBLIC и папка называется Music.`;
+            document.getElementById('lyrics-content').innerHTML = `<b style="color:red">Ошибка: ${e.message}</b><br>Проверьте, что папка называется Music и репозиторий открыт.`;
             st.style.display = 'none';
         }
 
@@ -137,9 +127,9 @@ const player = {
                     let img = "";
                     if (picture) {
                         const { data, format } = picture;
-                        let base64 = "";
-                        for (let i = 0; i < data.length; i++) base64 += String.fromCharCode(data[i]);
-                        img = `data:${format};base64,${window.btoa(base64)}`;
+                        let b64 = "";
+                        for (let i = 0; i < data.length; i++) b64 += String.fromCharCode(data[i]);
+                        img = `data:${format};base64,${window.btoa(b64)}`;
                     }
                     resolve({ 
                         url, 
@@ -149,14 +139,10 @@ const player = {
                         lyrics: lyrics ? (lyrics.lyrics || lyrics) : "" 
                     });
                 },
-                onError: (error) => {
-                    console.warn("Теги не найдены для:", url, error);
-                    resolve({ 
-                        url, 
-                        title: decodeURIComponent(url.split('/').pop().replace('.mp3','')), 
-                        artist: "Без метаданных", image: "", lyrics: "" 
-                    });
-                }
+                onError: () => resolve({ 
+                    url, title: decodeURIComponent(url.split('/').pop().replace('.mp3','')), 
+                    artist: "Без тегов", image: "", lyrics: "" 
+                })
             });
         });
     },
@@ -165,8 +151,7 @@ const player = {
         const cont = document.getElementById('list-content');
         cont.innerHTML = this.tracks.map((t, i) => `
             <div class="track-item" onclick="player.load(${i}, true)" id="item-${i}">
-                <b>${t.title}</b>
-                <span>${t.artist}</span>
+                <b>${t.title}</b><span>${t.artist}</span>
             </div>
         `).join('');
     },
@@ -186,44 +171,14 @@ const player = {
     parseLyrics(text) {
         const cont = document.getElementById('lyrics-content');
         this.lyricsData = [];
-        const lines = text.split('\n');
         const lrcReg = /^\[(\d{2}):(\d{2}(?:\.\d{1,3})?)\](.*)/;
+        const lines = text.split('\n');
 
-        if (text.includes('[')) {
-            lines.forEach(line => {
-                const m = line.match(lrcReg);
-                if (m) this.lyricsData.push({ time: parseInt(m[1]) * 60 + parseFloat(m[2]), text: m[3].trim() });
-            });
-            cont.innerHTML = this.lyricsData.map((l, i) => `<div class="lyric-line" id="lyr-${i}">${l.text}</div>`).join('');
-        } else {
-            cont.innerHTML = `<pre>${text || "Текст песни не найден в тегах файла"}</pre>`;
-        }
-        document.getElementById('lyrics-win').scrollTop = 0;
-    },
-
-    toggle() { this.audio.paused ? this.play() : this.pause(); },
-    play() { this.audio.play().catch(e => console.error("Ошибка автоплея:", e)); document.getElementById('play-btn').innerText = '⏸'; },
-    pause() { this.audio.pause(); document.getElementById('play-btn').innerText = '▶'; },
-    next() { this.load((this.currentIdx + 1) % this.tracks.length, true); },
-    prev() { this.load((this.currentIdx - 1 + this.tracks.length) % this.tracks.length, true); },
-
-    update() {
-        const p = document.getElementById('prog');
-        if (this.audio.duration) {
-            p.value = (this.audio.currentTime / this.audio.duration) * 100;
-            document.getElementById('cur').innerText = this.fmt(this.audio.currentTime);
-            document.getElementById('dur').innerText = this.fmt(this.audio.duration);
-        }
-        if (this.lyricsData.length > 0) {
-            const cur = this.audio.currentTime;
-            const idx = this.lyricsData.findIndex((l, i) => cur >= l.time && (!this.lyricsData[i+1] || cur < this.lyricsData[i+1].time));
+        if (text.includes(' || cur < this.lyricsData[i+1].time));
             if (idx !== -1) {
                 document.querySelectorAll('.lyric-line').forEach(l => l.classList.remove('active'));
                 const el = document.getElementById(`lyr-${idx}`);
-                if (el) {
-                    el.classList.add('active');
-                    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }
+                if (el) { el.classList.add('active'); el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
             }
         }
     },
