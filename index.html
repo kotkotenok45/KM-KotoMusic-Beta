@@ -2,67 +2,120 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>ID3 Tag Music Player</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KotoMusic Player</title>
+    <!-- Библиотека для чтения ID3-тегов прямо из файлов на GitHub -->
     <script src="https://cdnjs.cloudflare.com"></script>
     <style>
-        :root { --green: #1db954; --bg: #121212; --text: #b3b3b3; }
-        body { background: var(--bg); color: white; font-family: sans-serif; margin: 0; display: flex; flex-direction: column; height: 100vh; }
+        :root { --green: #1db954; --bg: #121212; --text: #b3b3b3; --panel: #181818; }
         
+        body { 
+            background: var(--bg); color: white; font-family: 'Segoe UI', sans-serif; 
+            margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; 
+        }
+
+        /* Главная область */
         .main { display: flex; flex: 1; overflow: hidden; }
-        .playlist { width: 300px; border-right: 1px solid #282828; padding: 20px; overflow-y: auto; }
-        .lyrics-view { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px; background: linear-gradient(to bottom, #222, #121212); overflow-y: auto; }
-        
-        .track-item { padding: 10px; cursor: pointer; border-radius: 4px; margin-bottom: 5px; font-size: 14px; }
+
+        /* Плейлист слева */
+        .playlist { 
+            width: 320px; background: #000; border-right: 1px solid #282828; 
+            padding: 20px; overflow-y: auto; 
+        }
+        .track-item { 
+            padding: 12px; cursor: pointer; border-radius: 8px; margin-bottom: 8px; 
+            transition: 0.2s; border: 1px solid transparent; display: flex; flex-direction: column;
+        }
         .track-item:hover { background: #282828; }
-        .track-item.active { color: var(--green); background: #222; }
+        .track-item.active { border-color: var(--green); background: #181818; }
+        .track-item b { font-size: 14px; color: white; }
+        .track-item span { font-size: 12px; color: var(--text); margin-top: 4px; }
 
-        .lyric-line { font-size: 24px; margin: 15px 0; color: var(--text); transition: 0.3s; text-align: center; }
-        .lyric-line.active { color: white; transform: scale(1.1); }
+        /* Окно текста по центру */
+        .lyrics-view { 
+            flex: 1; display: flex; flex-direction: column; align-items: center; 
+            padding: 40px; background: linear-gradient(180deg, #222 0%, #121212 100%); 
+            overflow-y: auto; scroll-behavior: smooth;
+        }
+        .lyric-line { 
+            font-size: 28px; font-weight: bold; margin: 20px 0; color: #444; 
+            transition: 0.4s; text-align: center; max-width: 90%;
+        }
+        .lyric-line.active { color: white; transform: scale(1.1); text-shadow: 0 0 15px rgba(255,255,255,0.3); }
 
-        .player-bar { background: #181818; padding: 15px 30px; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid #282828; }
+        /* Нижняя панель управления */
+        .player-bar { 
+            background: var(--panel); padding: 15px 30px; display: flex; 
+            align-items: center; justify-content: space-between; border-top: 1px solid #282828; 
+        }
         .info { width: 30%; display: flex; align-items: center; gap: 15px; }
-        #cover { width: 56px; height: 56px; border-radius: 4px; object-fit: cover; background: #282828; }
+        #cover { width: 60px; height: 60px; border-radius: 6px; object-fit: cover; background: #282828; }
         
-        .controls { width: 40%; text-align: center; }
-        #play-btn { background: white; border: none; border-radius: 50%; width: 40px; height: 40px; cursor: pointer; font-size: 18px; }
-        .progress-box { display: flex; align-items: center; gap: 10px; margin-top: 5px; }
-        input[type="range"] { flex: 1; accent-color: var(--green); }
+        .controls { width: 40%; display: flex; flex-direction: column; align-items: center; }
+        .btns { display: flex; gap: 25px; align-items: center; margin-bottom: 10px; }
+        #play-btn { 
+            background: white; border: none; border-radius: 50%; width: 45px; height: 45px; 
+            cursor: pointer; font-size: 20px; display: flex; align-items: center; justify-content: center; 
+        }
+        
+        .prog-container { width: 100%; display: flex; align-items: center; gap: 12px; }
+        input[type="range"] { flex: 1; accent-color: var(--green); cursor: pointer; }
+        .time { font-size: 11px; color: var(--text); min-width: 35px; }
+
+        /* Статус загрузки */
+        #status { 
+            position: fixed; top: 20px; right: 20px; background: var(--green); 
+            color: black; padding: 6px 16px; border-radius: 20px; font-size: 12px; 
+            font-weight: bold; display: none; z-index: 100;
+        }
+
+        pre { font-family: inherit; font-size: 18px; line-height: 1.8; color: white; white-space: pre-wrap; text-align: center; }
     </style>
 </head>
 <body>
 
+<div id="status">Поиск музыки...</div>
+
 <div class="main">
-    <div class="playlist" id="playlist"><h3>Медиатека</h3></div>
+    <div class="playlist">
+        <h2 style="margin-top:0">Медиатека</h2>
+        <div id="list-content"></div>
+    </div>
     <div class="lyrics-view" id="lyrics-win">
-        <div id="lyrics-content">Текст загружается из тегов...</div>
+        <div id="lyrics-content">Загрузите музыку в папку music...</div>
     </div>
 </div>
 
 <div class="player-bar">
     <div class="info">
-        <img id="cover" src="">
+        <img id="cover" src="https://via.placeholder.com">
         <div>
-            <div id="title" style="font-weight:bold">---</div>
+            <div id="title" style="font-weight:bold; font-size: 14px;">---</div>
             <div id="artist" style="font-size:12px; color:var(--text)">---</div>
         </div>
     </div>
+    
     <div class="controls">
-        <button onclick="player.toggle()" id="play-btn">▶</button>
-        <div class="progress-box">
-            <span id="cur" style="font-size:12px">0:00</span>
+        <div class="btns">
+            <button onclick="player.prev()" style="background:none; border:none; color:white; cursor:pointer; font-size:24px;">⏮</button>
+            <button onclick="player.toggle()" id="play-btn">▶</button>
+            <button onclick="player.next()" style="background:none; border:none; color:white; cursor:pointer; font-size:24px;">⏭</button>
+        </div>
+        <div class="prog-container">
+            <span class="time" id="cur">0:00</span>
             <input type="range" id="prog" value="0" step="0.1">
-            <span id="dur" style="font-size:12px">0:00</span>
+            <span class="time" id="dur">0:00</span>
         </div>
     </div>
-    <div style="width:30%"></div>
+
+    <div style="width: 30%; text-align: right;">
+        <input type="range" id="vol" value="100" style="width:80px;">
+    </div>
 </div>
 
 <script>
-// 1. УКАЖИ ЗДЕСЬ ИМЕНА ФАЙЛОВ ИЗ ПАПКИ music
-const fileNames = [
-    "music/song1.mp3",
-    "music/song2.mp3"
-];
+const GITHUB_USER = "kotkotenok45";
+const GITHUB_REPO = "KM-KotoMusic-Beta";
 
 const jsmediatags = window.jsmediatags;
 
@@ -73,18 +126,39 @@ const player = {
     lyricsData: [],
 
     async init() {
-        // Читаем теги для каждого файла
-        for (let file of fileNames) {
-            const data = await this.readTags(file);
-            this.tracks.push(data);
-        }
-        this.render();
-        this.load(0);
+        const st = document.getElementById('status');
+        st.style.display = 'block';
 
+        try {
+            // Сканируем папку music через API GitHub
+            const resp = await fetch(`https://api.github.com{GITHUB_USER}/${GITHUB_REPO}/contents/music`);
+            const files = await resp.json();
+
+            if (!Array.isArray(files)) throw new Error("Папка 'music' не найдена в репозитории");
+
+            const mp3s = files.filter(f => f.name.toLowerCase().endsWith('.mp3'));
+
+            for (let file of mp3s) {
+                st.innerText = `Читаю: ${file.name}`;
+                const data = await this.readTags(file.download_url);
+                this.tracks.push(data);
+            }
+
+            st.style.display = 'none';
+            this.render();
+            if (this.tracks.length > 0) this.load(0);
+
+        } catch (e) {
+            console.error(e);
+            document.getElementById('lyrics-content').innerText = "Ошибка: " + e.message;
+            st.style.display = 'none';
+        }
+
+        // Привязка управления
         this.audio.ontimeupdate = () => this.update();
-        document.getElementById('prog').oninput = (e) => {
-            this.audio.currentTime = (e.target.value / 100) * this.audio.duration;
-        };
+        this.audio.onended = () => this.next();
+        document.getElementById('prog').oninput = (e) => this.audio.currentTime = (e.target.value / 100) * this.audio.duration;
+        document.getElementById('vol').oninput = (e) => this.audio.volume = e.target.value / 100;
     },
 
     readTags(url) {
@@ -92,37 +166,45 @@ const player = {
             jsmediatags.read(url, {
                 onSuccess: (tag) => {
                     const { title, artist, lyrics, picture } = tag.tags;
-                    let image = "";
+                    let img = "";
                     if (picture) {
                         const { data, format } = picture;
-                        let base64String = "";
-                        for (let i = 0; i < data.length; i++) base64String += String.fromCharCode(data[i]);
-                        image = `data:${format};base64,${window.btoa(base64String)}`;
+                        let base64 = "";
+                        for (let i = 0; i < data.length; i++) base64 += String.fromCharCode(data[i]);
+                        img = `data:${format};base64,${window.btoa(base64)}`;
                     }
-                    // lyrics в ID3 часто лежат в поле 'USLT' или 'SYLT'
-                    const rawLyrics = lyrics ? (lyrics.lyrics || lyrics) : "";
-                    resolve({ url, title: title || url, artist: artist || "Unknown", image, lyrics: rawLyrics });
+                    resolve({ 
+                        url, 
+                        title: title || url.split('/').pop().replace('.mp3',''), 
+                        artist: artist || "Неизвестен", 
+                        image: img, 
+                        lyrics: lyrics ? (lyrics.lyrics || lyrics) : "" 
+                    });
                 },
-                onError: () => resolve({ url, title: url, artist: "Unknown", image: "", lyrics: "" })
+                onError: () => resolve({ 
+                    url, 
+                    title: url.split('/').pop().replace('.mp3',''), 
+                    artist: "Без тегов", image: "", lyrics: "" 
+                })
             });
         });
     },
 
     render() {
-        const list = document.getElementById('playlist');
-        this.tracks.forEach((t, i) => {
-            const div = document.createElement('div');
-            div.className = 'track-item';
-            div.innerHTML = `<b>${t.title}</b><br>${t.artist}`;
-            div.onclick = () => this.load(i, true);
-            list.appendChild(div);
-        });
+        const cont = document.getElementById('list-content');
+        cont.innerHTML = this.tracks.map((t, i) => `
+            <div class="track-item" onclick="player.load(${i}, true)" id="item-${i}">
+                <b>${t.title}</b>
+                <span>${t.artist}</span>
+            </div>
+        `).join('');
     },
 
     load(idx, play = false) {
         this.currentIdx = idx;
         const t = this.tracks[idx];
         this.audio.src = t.url;
+        
         document.getElementById('title').innerText = t.title;
         document.getElementById('artist').innerText = t.artist;
         document.getElementById('cover').src = t.image || "https://via.placeholder.com";
@@ -136,23 +218,26 @@ const player = {
     parseLyrics(text) {
         const cont = document.getElementById('lyrics-content');
         this.lyricsData = [];
-        const lrcReg = /^\[(\d{2}):(\d{2}(?:\.\d{1,3})?)\](.*)/;
         const lines = text.split('\n');
+        const lrcReg = /^\[(\d{2}):(\d{2}(?:\.\d{1,3})?)\](.*)/;
 
-        if (text.includes('[')) { // Похоже на LRC
+        if (text.includes('[')) { // Если есть временные метки (LRC)
             lines.forEach(line => {
                 const m = line.match(lrcReg);
                 if (m) this.lyricsData.push({ time: parseInt(m[1]) * 60 + parseFloat(m[2]), text: m[3].trim() });
             });
             cont.innerHTML = this.lyricsData.map((l, i) => `<div class="lyric-line" id="lyr-${i}">${l.text}</div>`).join('');
         } else {
-            cont.innerHTML = `<pre style="font-size:18px; color:white;">${text || "Текст отсутствует в тегах"}</pre>`;
+            cont.innerHTML = `<pre>${text || "Текст песни отсутствует в тегах"}</pre>`;
         }
+        document.getElementById('lyrics-win').scrollTop = 0;
     },
 
     toggle() { this.audio.paused ? this.play() : this.pause(); },
     play() { this.audio.play(); document.getElementById('play-btn').innerText = '⏸'; },
     pause() { this.audio.pause(); document.getElementById('play-btn').innerText = '▶'; },
+    next() { this.load((this.currentIdx + 1) % this.tracks.length, true); },
+    prev() { this.load((this.currentIdx - 1 + this.tracks.length) % this.tracks.length, true); },
 
     update() {
         const p = document.getElementById('prog');
@@ -162,7 +247,7 @@ const player = {
             document.getElementById('dur').innerText = this.fmt(this.audio.duration);
         }
 
-        // Синхронизация
+        // Синхронизация текста
         if (this.lyricsData.length > 0) {
             const cur = this.audio.currentTime;
             const idx = this.lyricsData.findIndex((l, i) => cur >= l.time && (!this.lyricsData[i+1] || cur < this.lyricsData[i+1].time));
@@ -171,17 +256,14 @@ const player = {
                 const el = document.getElementById(`lyr-${idx}`);
                 if (el) {
                     el.classList.add('active');
+                    // Автоматический скролл к текущей строке
                     el.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 }
             }
         }
     },
 
-    fmt(s) {
-        const m = Math.floor(s / 60);
-        const sec = Math.floor(s % 60);
-        return `${m}:${sec < 10 ? '0' + sec : sec}`;
-    }
+    fmt: (s) => `${Math.floor(s/60)}:${Math.floor(s%60).toString().padStart(2, '0')}`
 };
 
 player.init();
