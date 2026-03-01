@@ -9,7 +9,7 @@
         body { background: var(--bg); color: white; font-family: sans-serif; margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
         .main { display: flex; flex: 1; overflow: hidden; }
         .playlist { width: 300px; background: #000; border-right: 1px solid #333; padding: 20px; overflow-y: auto; }
-        .track-item { padding: 12px; cursor: pointer; border-radius: 6px; margin-bottom: 8px; background: #181818; border: 1px solid transparent; }
+        .track-item { padding: 12px; cursor: pointer; border-radius: 8px; margin-bottom: 8px; background: #181818; border: 1px solid transparent; }
         .track-item:hover { background: #282828; }
         .track-item.active { border-color: var(--green); }
         .lyrics-view { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 40px; background: linear-gradient(180deg, #222 0%, #121212 100%); overflow-y: auto; scroll-behavior: smooth; }
@@ -31,7 +31,7 @@
         <div id="list-content">Загрузка...</div>
     </div>
     <div class="lyrics-view" id="lyrics-win">
-        <div id="lyrics-content">Ожидание трека...</div>
+        <div id="lyrics-content">Ожидание...</div>
     </div>
 </div>
 
@@ -57,14 +57,13 @@
 </div>
 
 <script>
-// --- НАСТРОЙКИ ---
+// --- ВНИМАНИЕ: ПРОПИШИ СВОИ ФАЙЛЫ ТУТ ---
+const MANUAL_FILES = ["Sxilwix_Hwungii_DJ_VGK1_-_VOCE_NA_MIRA_JUMPSTYLE_(SkySound.cc).mp3", "DJ_Asul_-_MATADORA_(SkySound.cc).mp3"]; 
+// ----------------------------------------
+
 const USER = "kotkotenok45";
 const REPO = "KM-KotoMusic-Beta";
 const FOLDER = "Music";
-
-// ЕСЛИ АВТОМАТИКА НЕ СРАБОТАЕТ, ПРОСТО ДОБАВЬ НАЗВАНИЯ ФАЙЛОВ СЮДА:
-const MANUAL_FILES = []; // например ["track1.mp3", "track2.mp3"]
-// -----------------
 
 const p = {
     audio: new Audio(),
@@ -72,22 +71,19 @@ const p = {
     lyricsData: [],
 
     async init() {
+        const lyrCont = document.getElementById('lyrics-content');
         try {
-            let files;
-            const api = `https://api.github.com{USER}/${REPO}/contents/${FOLDER}`;
-            const res = await fetch(api);
-            
-            if (res.ok) {
-                const data = await res.json();
-                files = data.filter(f => f.name.toLowerCase().endsWith('.mp3')).map(f => f.download_url);
-            } else {
-                console.warn("API лимит или ошибка. Переключаюсь на ручной список.");
-                files = MANUAL_FILES.map(name => `https://raw.githubusercontent.com{USER}/${REPO}/main/${FOLDER}/${encodeURIComponent(name)}`);
+            // Прямая загрузка через raw.githubusercontent (не боится лимитов API)
+            const urls = MANUAL_FILES.map(f => 
+                `https://raw.githubusercontent.com{USER}/${REPO}/main/${FOLDER}/${encodeURIComponent(f)}`
+            );
+
+            if (urls.length === 0) {
+                lyrCont.innerHTML = `<div style="color:orange">Добавь названия файлов в MANUAL_FILES внутри кода!</div>`;
+                return;
             }
 
-            if (!files.length) throw new Error("Музыка не найдена. Проверь папку Music.");
-
-            for (let url of files) {
+            for (let url of urls) {
                 const tagData = await this.read(url);
                 this.tracks.push(tagData);
             }
@@ -95,7 +91,7 @@ const p = {
             this.render();
             if (this.tracks.length > 0) this.load(0);
         } catch (e) {
-            document.getElementById('lyrics-content').innerHTML = `<div style="color:red">${e.message}</div>`;
+            lyrCont.innerHTML = `<div style="color:red">Ошибка: ${e.message}</div>`;
         }
 
         this.audio.ontimeupdate = () => this.update();
@@ -146,7 +142,7 @@ const p = {
         if (txt.includes('[')) {
             txt.split('\n').forEach(line => {
                 const m = line.match(/^\[(\d{2}):(\d{2}(?:\.\d+)?)\](.*)/);
-                if (m) this.lyricsData.push({ time: parseInt(m[1]) * 60 + parseFloat(m[2]), text: m[3].trim() });
+                if (m) this.lyricsData.push({ time: parseInt(m) * 60 + parseFloat(m), text: m.trim() });
             });
             cont.innerHTML = this.lyricsData.map((l, i) => `<div class="lyric-line" id="l-${i}">${l.text}</div>`).join('');
         } else {
