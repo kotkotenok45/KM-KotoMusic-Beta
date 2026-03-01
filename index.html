@@ -2,264 +2,189 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GitHub Music Player</title>
+    <title>ID3 Tag Music Player</title>
+    <script src="https://cdnjs.cloudflare.com"></script>
     <style>
-        :root {
-            --spotify-green: #1db954;
-            --bg-black: #121212;
-            --card-grey: #181818;
-            --text-grey: #b3b3b3;
-        }
+        :root { --green: #1db954; --bg: #121212; --text: #b3b3b3; }
+        body { background: var(--bg); color: white; font-family: sans-serif; margin: 0; display: flex; flex-direction: column; height: 100vh; }
+        
+        .main { display: flex; flex: 1; overflow: hidden; }
+        .playlist { width: 300px; border-right: 1px solid #282828; padding: 20px; overflow-y: auto; }
+        .lyrics-view { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px; background: linear-gradient(to bottom, #222, #121212); overflow-y: auto; }
+        
+        .track-item { padding: 10px; cursor: pointer; border-radius: 4px; margin-bottom: 5px; font-size: 14px; }
+        .track-item:hover { background: #282828; }
+        .track-item.active { color: var(--green); background: #222; }
 
-        body {
-            background-color: var(--bg-black);
-            color: white;
-            font-family: 'Segoe UI', Roboto, sans-serif;
-            margin: 0;
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-            overflow: hidden;
-        }
-
-        /* Список треков */
-        .main-content {
-            display: flex;
-            flex: 1;
-            overflow: hidden;
-        }
-
-        .playlist {
-            width: 40%;
-            padding: 20px;
-            overflow-y: auto;
-            border-right: 1px solid #282828;
-        }
-
-        /* Секция текста песни */
-        .lyrics-window {
-            flex: 1;
-            padding: 40px;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            background: linear-gradient(180deg, #282828 0%, #121212 100%);
-        }
-
-        #lyrics-content {
-            font-size: 24px;
-            font-weight: bold;
-            line-height: 1.6;
-            text-align: center;
-            max-width: 80%;
-            color: var(--text-grey);
-        }
-
-        .lyric-line { transition: all 0.3s; margin: 15px 0; }
+        .lyric-line { font-size: 24px; margin: 15px 0; color: var(--text); transition: 0.3s; text-align: center; }
         .lyric-line.active { color: white; transform: scale(1.1); }
 
-        .track-item {
-            display: flex;
-            align-items: center;
-            padding: 10px;
-            border-radius: 8px;
-            cursor: pointer;
-            margin-bottom: 5px;
-        }
-
-        .track-item:hover { background: #282828; }
-        .track-item.active { background: #333; }
-        .track-item.active .title { color: var(--spotify-green); }
-
-        /* Плеер-бар */
-        .player-bar {
-            background: #181818;
-            padding: 15px 30px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            z-index: 10;
-        }
-
-        .controls { width: 40%; display: flex; flex-direction: column; align-items: center; }
-        .buttons { margin-bottom: 8px; display: flex; gap: 20px; }
+        .player-bar { background: #181818; padding: 15px 30px; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid #282828; }
+        .info { width: 30%; display: flex; align-items: center; gap: 15px; }
+        #cover { width: 56px; height: 56px; border-radius: 4px; object-fit: cover; background: #282828; }
         
-        #play-btn { 
-            background: white; color: black; width: 40px; height: 40px; 
-            border-radius: 50%; border: none; cursor: pointer; font-size: 18px;
-        }
-
-        .progress-container { width: 100%; display: flex; align-items: center; gap: 10px; }
-        input[type="range"] { flex: 1; accent-color: var(--spotify-green); cursor: pointer; }
-        .time { font-size: 12px; color: var(--text-grey); width: 35px; }
-
-        pre { font-family: inherit; white-space: pre-wrap; font-size: 18px; }
+        .controls { width: 40%; text-align: center; }
+        #play-btn { background: white; border: none; border-radius: 50%; width: 40px; height: 40px; cursor: pointer; font-size: 18px; }
+        .progress-box { display: flex; align-items: center; gap: 10px; margin-top: 5px; }
+        input[type="range"] { flex: 1; accent-color: var(--green); }
     </style>
 </head>
 <body>
 
-    <div class="main-content">
-        <div class="playlist" id="playlist">
-            <h2 style="margin-top: 0;">Мой Репозиторий</h2>
-            <!-- Треки из JS -->
-        </div>
+<div class="main">
+    <div class="playlist" id="playlist"><h3>Медиатека</h3></div>
+    <div class="lyrics-view" id="lyrics-win">
+        <div id="lyrics-content">Текст загружается из тегов...</div>
+    </div>
+</div>
 
-        <div class="lyrics-window" id="lyrics-win">
-            <div id="lyrics-content">Выберите трек, чтобы увидеть текст</div>
+<div class="player-bar">
+    <div class="info">
+        <img id="cover" src="">
+        <div>
+            <div id="title" style="font-weight:bold">---</div>
+            <div id="artist" style="font-size:12px; color:var(--text)">---</div>
         </div>
     </div>
-
-    <div class="player-bar">
-        <div style="width: 30%; display: flex; align-items: center; gap: 15px;">
-            <img src="https://via.placeholder.com" id="curr-cover" style="border-radius: 4px;">
-            <div>
-                <div id="curr-title" style="font-weight: bold;">---</div>
-                <div id="curr-artist" style="font-size: 12px; color: var(--text-grey);">---</div>
-            </div>
-        </div>
-
-        <div class="controls">
-            <div class="buttons">
-                <button onclick="player.prev()" style="background:none; color:white; border:none; cursor:pointer; font-size:20px;">⏮</button>
-                <button id="play-btn" onclick="player.toggle()">▶</button>
-                <button onclick="player.next()" style="background:none; color:white; border:none; cursor:pointer; font-size:20px;">⏭</button>
-            </div>
-            <div class="progress-container">
-                <span class="time" id="time-current">0:00</span>
-                <input type="range" id="progress" value="0" step="0.1">
-                <span class="time" id="time-total">0:00</span>
-            </div>
-        </div>
-
-        <div style="width: 30%; text-align: right;">
-            <input type="range" id="volume" value="100" style="width: 100px;">
+    <div class="controls">
+        <button onclick="player.toggle()" id="play-btn">▶</button>
+        <div class="progress-box">
+            <span id="cur" style="font-size:12px">0:00</span>
+            <input type="range" id="prog" value="0" step="0.1">
+            <span id="dur" style="font-size:12px">0:00</span>
         </div>
     </div>
+    <div style="width:30%"></div>
+</div>
 
-    <script>
-        // СПИСОК ТРЕКОВ
-        // Если файлы лежат в папке music, пиши "music/song.mp3"
-        const songs = [
-            { 
-                title: "Название 1", 
-                artist: "Артист 1", 
-                url: "music/track1.mp3", 
-                cover: "music/cover1.jpg",
-                // Пример LRC формата
-                lyrics: "[00:00.00]Интро\n[00:05.00]Первая синхронная строка\n[00:10.00]Вторая строка"
-            },
-            { 
-                title: "Название 2", 
-                artist: "Артист 2", 
-                url: "music/track2.mp3", 
-                cover: "https://via.placeholder.com",
-                lyrics: "Это обычный текст без времени.\nОн просто будет отображаться целиком.\nВторая строка текста."
-            }
-        ];
+<script>
+// 1. УКАЖИ ЗДЕСЬ ИМЕНА ФАЙЛОВ ИЗ ПАПКИ music
+const fileNames = [
+    "music/song1.mp3",
+    "music/song2.mp3"
+];
 
-        const player = {
-            audio: new Audio(),
-            currentIndex: 0,
-            lyricsData: [],
+const jsmediatags = window.jsmediatags;
 
-            init() {
-                this.renderPlaylist();
-                this.loadTrack(0);
+const player = {
+    audio: new Audio(),
+    currentIdx: 0,
+    tracks: [],
+    lyricsData: [],
 
-                this.audio.ontimeupdate = () => this.update();
-                this.audio.onended = () => this.next();
-                
-                document.getElementById('volume').oninput = (e) => this.audio.volume = e.target.value / 100;
-                document.getElementById('progress').oninput = (e) => {
-                    this.audio.currentTime = (e.target.value / 100) * this.audio.duration;
-                };
-            },
+    async init() {
+        // Читаем теги для каждого файла
+        for (let file of fileNames) {
+            const data = await this.readTags(file);
+            this.tracks.push(data);
+        }
+        this.render();
+        this.load(0);
 
-            renderPlaylist() {
-                const list = document.getElementById('playlist');
-                songs.forEach((s, i) => {
-                    const div = document.createElement('div');
-                    div.className = 'track-item';
-                    div.innerHTML = `<div class="title">${s.title}</div><div style="font-size:12px; color:gray; margin-left:10px;">${s.artist}</div>`;
-                    div.onclick = () => this.loadTrack(i, true);
-                    list.appendChild(div);
-                });
-            },
-
-            loadTrack(index, play = false) {
-                this.currentIndex = index;
-                const s = songs[index];
-                this.audio.src = s.url;
-                document.getElementById('curr-title').innerText = s.title;
-                document.getElementById('curr-artist').innerText = s.artist;
-                document.getElementById('curr-cover').src = s.cover;
-                
-                this.parseLyrics(s.lyrics || "");
-                
-                document.querySelectorAll('.track-item').forEach((el, i) => el.classList.toggle('active', i === index));
-                if (play) this.play();
-            },
-
-            parseLyrics(text) {
-                const lines = text.split('\n');
-                const lrcReg = /^\[(\d{2}):(\d{2}(?:\.\d{1,3})?)\](.*)/;
-                this.lyricsData = [];
-
-                lines.forEach(line => {
-                    const m = line.match(lrcReg);
-                    if (m) {
-                        this.lyricsData.push({ time: parseInt(m[1]) * 60 + parseFloat(m[2]), text: m[3].trim() });
-                    }
-                });
-
-                const cont = document.getElementById('lyrics-content');
-                if (this.lyricsData.length > 0) {
-                    cont.innerHTML = this.lyricsData.map((l, i) => `<div class="lyric-line" id="l-${i}">${l.text}</div>`).join('');
-                } else {
-                    cont.innerHTML = `<pre>${text}</pre>`;
-                }
-            },
-
-            toggle() { this.audio.paused ? this.play() : this.pause(); },
-            play() { this.audio.play(); document.getElementById('play-btn').innerText = '⏸'; },
-            pause() { this.audio.pause(); document.getElementById('play-btn').innerText = '▶'; },
-            next() { this.loadTrack((this.currentIndex + 1) % songs.length, true); },
-            prev() { this.loadTrack((this.currentIndex - 1 + songs.length) % songs.length, true); },
-
-            update() {
-                const prog = document.getElementById('progress');
-                if (this.audio.duration) {
-                    prog.value = (this.audio.currentTime / this.audio.duration) * 100;
-                    document.getElementById('time-current').innerText = this.fmt(this.audio.currentTime);
-                    document.getElementById('time-total').innerText = this.fmt(this.audio.duration);
-                }
-
-                // Синхронизация LRC
-                if (this.lyricsData.length > 0) {
-                    const cur = this.audio.currentTime;
-                    const idx = this.lyricsData.findIndex((l, i) => cur >= l.time && (!this.lyricsData[i+1] || cur < this.lyricsData[i+1].time));
-                    
-                    if (idx !== -1) {
-                        document.querySelectorAll('.lyric-line').forEach(l => l.classList.remove('active'));
-                        const line = document.getElementById(`l-${idx}`);
-                        if (line) {
-                            line.classList.add('active');
-                            line.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        }
-                    }
-                }
-            },
-
-            fmt(s) {
-                const m = Math.floor(s / 60);
-                const sec = Math.floor(s % 60);
-                return `${m}:${sec < 10 ? '0' + sec : sec}`;
-            }
+        this.audio.ontimeupdate = () => this.update();
+        document.getElementById('prog').oninput = (e) => {
+            this.audio.currentTime = (e.target.value / 100) * this.audio.duration;
         };
+    },
 
-        player.init();
-    </script>
+    readTags(url) {
+        return new Promise((resolve) => {
+            jsmediatags.read(url, {
+                onSuccess: (tag) => {
+                    const { title, artist, lyrics, picture } = tag.tags;
+                    let image = "";
+                    if (picture) {
+                        const { data, format } = picture;
+                        let base64String = "";
+                        for (let i = 0; i < data.length; i++) base64String += String.fromCharCode(data[i]);
+                        image = `data:${format};base64,${window.btoa(base64String)}`;
+                    }
+                    // lyrics в ID3 часто лежат в поле 'USLT' или 'SYLT'
+                    const rawLyrics = lyrics ? (lyrics.lyrics || lyrics) : "";
+                    resolve({ url, title: title || url, artist: artist || "Unknown", image, lyrics: rawLyrics });
+                },
+                onError: () => resolve({ url, title: url, artist: "Unknown", image: "", lyrics: "" })
+            });
+        });
+    },
+
+    render() {
+        const list = document.getElementById('playlist');
+        this.tracks.forEach((t, i) => {
+            const div = document.createElement('div');
+            div.className = 'track-item';
+            div.innerHTML = `<b>${t.title}</b><br>${t.artist}`;
+            div.onclick = () => this.load(i, true);
+            list.appendChild(div);
+        });
+    },
+
+    load(idx, play = false) {
+        this.currentIdx = idx;
+        const t = this.tracks[idx];
+        this.audio.src = t.url;
+        document.getElementById('title').innerText = t.title;
+        document.getElementById('artist').innerText = t.artist;
+        document.getElementById('cover').src = t.image || "https://via.placeholder.com";
+        
+        this.parseLyrics(t.lyrics);
+        
+        document.querySelectorAll('.track-item').forEach((el, i) => el.classList.toggle('active', i === idx));
+        if (play) this.play();
+    },
+
+    parseLyrics(text) {
+        const cont = document.getElementById('lyrics-content');
+        this.lyricsData = [];
+        const lrcReg = /^\[(\d{2}):(\d{2}(?:\.\d{1,3})?)\](.*)/;
+        const lines = text.split('\n');
+
+        if (text.includes('[')) { // Похоже на LRC
+            lines.forEach(line => {
+                const m = line.match(lrcReg);
+                if (m) this.lyricsData.push({ time: parseInt(m[1]) * 60 + parseFloat(m[2]), text: m[3].trim() });
+            });
+            cont.innerHTML = this.lyricsData.map((l, i) => `<div class="lyric-line" id="lyr-${i}">${l.text}</div>`).join('');
+        } else {
+            cont.innerHTML = `<pre style="font-size:18px; color:white;">${text || "Текст отсутствует в тегах"}</pre>`;
+        }
+    },
+
+    toggle() { this.audio.paused ? this.play() : this.pause(); },
+    play() { this.audio.play(); document.getElementById('play-btn').innerText = '⏸'; },
+    pause() { this.audio.pause(); document.getElementById('play-btn').innerText = '▶'; },
+
+    update() {
+        const p = document.getElementById('prog');
+        if (this.audio.duration) {
+            p.value = (this.audio.currentTime / this.audio.duration) * 100;
+            document.getElementById('cur').innerText = this.fmt(this.audio.currentTime);
+            document.getElementById('dur').innerText = this.fmt(this.audio.duration);
+        }
+
+        // Синхронизация
+        if (this.lyricsData.length > 0) {
+            const cur = this.audio.currentTime;
+            const idx = this.lyricsData.findIndex((l, i) => cur >= l.time && (!this.lyricsData[i+1] || cur < this.lyricsData[i+1].time));
+            if (idx !== -1) {
+                document.querySelectorAll('.lyric-line').forEach(l => l.classList.remove('active'));
+                const el = document.getElementById(`lyr-${idx}`);
+                if (el) {
+                    el.classList.add('active');
+                    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }
+        }
+    },
+
+    fmt(s) {
+        const m = Math.floor(s / 60);
+        const sec = Math.floor(s % 60);
+        return `${m}:${sec < 10 ? '0' + sec : sec}`;
+    }
+};
+
+player.init();
+</script>
 </body>
 </html>
