@@ -75,7 +75,7 @@ const player = {
         const lyrCont = document.getElementById('lyrics-content');
         try {
             // Запрос к API GitHub
-            const api = `https://api.github.com{USER}/${REPO}/contents/${FOLDER}`;
+            const api = `https://api.github.com{USER}/${REPO}/contents/${FOLDER}?ref=main`;
             const res = await fetch(api);
             
             if (!res.ok) throw new Error(`Ошибка ${res.status}: Папка не найдена или лимит запросов.`);
